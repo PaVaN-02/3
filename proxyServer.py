@@ -1,32 +1,33 @@
-from functools import cache
-from genericpath import isdir, isfile
-import mimetypes
-import os
+#from functools import cache
+# from genericpath import isdir, isfile
+# import mimetypes
+# import os
 import re
 import socket
-import subprocess
-import sys
+# import subprocess
+# import sys
 from typing import OrderedDict #insertion order is followed
 import urllib.request
 
 class serverCache:
-    def __init__(self) -> None:
+    def _init_(self) -> None:
         self.cache=OrderedDict()
         self.capacity=5
 
     def checkPresence(self,key:str):
         if key in self.cache:
-            self.cache.move_to_end(key)
-            return 1
+            return True
         else: 
-            return -1
+            return False
     
     def placeNewKey(self,key,value)->None:
         if(len(self.cache)<self.capacity):
             self.cache[key]=value
+            print(self.cache)
         elif(len(self.cache)>=self.capacity):
             self.cache.popitem(last=False) #remove last key
             self.cache[key]=value
+            print(self.cache)
             
 
 
@@ -41,57 +42,61 @@ class HTTPServer:
                 connection,clientAddress = sock.accept()
                 with connection:
                     urlRcvd=connection.recv(1024)
-                    uri=self.getURI(urlRcvd)
+                    uri=self.getURI(urlRcvd.decode())
                     if self.isValidURL(uri)==True:
-                        if(uri!="favicon.ico"):
-                            #print("URI:" +uri)
+                        if("favicon.ico" not in uri):
+                            print("valid url")
+                            print(uri)
                             code, c_type, c_length, data = self.getRequestedData(uri)
                     else:
-                        data= "<h1>file  doesnot exist</h1>" #fnf 
+                        data= "<h1>invalid url</h1>" #fnf 
+                        print("invalid url")
+                        print(uri)
                         code,c_type, c_length, data = 404, "text/html", len(data), data.encode() 
                     response = self.response_headers(code, c_type, c_length).encode() + data
                     connection.sendall(response)
                     connection.close()
         
-    def isValidURL(self,str):
-     # Regex to check valid URL
-        regex = ("((http|https)://)(www.)?" +
-                "[a-zA-Z0-9@:%._\\+~#?&//=]" +
-                "{2,256}\\.[a-z]" +
-                "{2,6}\\b([-a-zA-Z0-9@:%" +
-                "._\\+~#?&//=]*)")
-        
-        # Compile the ReGex
-        p = re.compile(regex)
-    
-        if (str == None):
-            return False
-    
-        # Return if the string        # matched the ReGex
-        if(re.search(p, str)):
+    def isValidURL(self,ip_url):
+# Regular expression for URL
+        re_exp = ("((http|https)://)(www.)?" + "[a-zA-Z0-9@:%._\\+~#?&//=]" +
+                "{2,256}\\.[a-z]" + "{2,6}\\b([-a-zA-Z0-9@:%" + "._\\+~#?&//=]*)")
+        exp = re.compile(re_exp)
+        if (ip_url == None):
+            print("Input string is empty")
+        if(re.search(exp, ip_url)):
+            print("Input URL is valid!")
             return True
         else:
-            return False  
+            print("Input URL is invalid!")
+            return False
+
 
     def getURI(self,data):
-        msgStr=data.decode()
-        start=msgStr.find("://")+\
-            len("://")
+        msgStr=data
+        start=msgStr.find("GET ")+\
+            len("GET ")
         msgStr=msgStr[start:]
         end=msgStr.find(" ")
         msgStr=msgStr[:end]
         msgStr= msgStr.strip()
         fileURI=msgStr
-        #print("file requested: "+fileURI)
+        print("file requested: "+fileURI)
         return fileURI
         
     def getRequestedData(self,url):
-        urlRcvd=''
-        urlRcvd+=str(url.decode())
+        # if "http://" not in url:
+        #     urlRcvd="http://"+url
+        # else: urlRcvd=url
+        urlRcvd=url
+        print(urlRcvd)
         if(self.sc.checkPresence(urlRcvd)):
+            self.sc.cache.move_to_end(urlRcvd)
             data=self.sc.cache[urlRcvd]
+            print('data')
         else:
-            data=urllib.request.urlopen(url)
+            f=urllib.request.urlopen(url)
+            data=f.read()
             self.sc.placeNewKey(urlRcvd,data)
         return 200, "text/html", len(data), data.encode() 
        
