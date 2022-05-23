@@ -44,10 +44,11 @@ class HTTPServer:
                     uri=self.getURI(urlRcvd)
                     if self.isValidURL(uri)==True:
                         if(uri!="favicon.ico"):
-                            #print("URI:" +uri)
+                            print('True')
                             code, c_type, c_length, data = self.getRequestedData(uri)
                     else:
-                        data= "<h1>file  doesnot exist</h1>" #fnf 
+                        data= "<h1>file  doesnot exist</h1>" #fnf
+                        print('False') 
                         code,c_type, c_length, data = 404, "text/html", len(data), data.encode() 
                     response = self.response_headers(code, c_type, c_length).encode() + data
                     connection.sendall(response)
@@ -55,7 +56,7 @@ class HTTPServer:
         
     def isValidURL(self,str):
      # Regex to check valid URL
-        regex = ("((http|https)://)(www.)?" +
+        regex = (
                 "[a-zA-Z0-9@:%._\\+~#?&//=]" +
                 "{2,256}\\.[a-z]" +
                 "{2,6}\\b([-a-zA-Z0-9@:%" +
@@ -82,14 +83,15 @@ class HTTPServer:
         msgStr=msgStr[:end]
         msgStr= msgStr.strip()
         fileURI=msgStr
-        #print("file requested: "+fileURI)
+        print("file requested: "+fileURI)
         return fileURI
         
     def getRequestedData(self,url):
-        urlRcvd=''
-        urlRcvd+=str(url.decode())
-        if(self.sc.checkPresence(urlRcvd)):
+        urlRcvd=url
+        if(self.sc.checkPresence(urlRcvd)>1):
+            print(self.sc.checkPresence(urlRcvd))
             data=self.sc.cache[urlRcvd]
+            print(data)
         else:
             data=urllib.request.urlopen(url)
             self.sc.placeNewKey(urlRcvd,data)
